@@ -1,12 +1,26 @@
 from flask import Flask, request
 import requests
 import os
-
+from threading import Thread
+import time
+from datetime import datetime
 TOKEN = os.getenv("BOT_TOKEN")
 APP_URL = f"https://api.telegram.org/bot{TOKEN}"
 
 app = Flask(__name__)
 recordatorios = {}
+def bucle_recordatorios():
+    while True:
+        ahora = datetime.now().strftime("%H:%M")
+        for chat_id in list(recordatorios.keys()):
+            hora, mensaje = recordatorios[chat_id]
+            if hora == ahora:
+                enviar_mensaje(chat_id, f"⏰ Recordatori: {mensaje}")
+                del recordatorios[chat_id]
+        time.sleep(60)
+
+# Lanza el bucle en un hilo paralelo
+Thread(target=bucle_recordatorios, daemon=True).start()
 
 @app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
@@ -19,7 +33,7 @@ def webhook():
             try:
                 hora, mensaje = text.split(" ", 2)[1:]
                 recordatorios[chat_id] = (hora, mensaje)
-                enviar_mensaje(chat_id, f"👌 Recordaré '{mensaje}' a las {hora}")
+                enviar_mensaje(chat_id, f"👌 Recordaré '{mensaje}' a les {hora}")
             except:
                 enviar_mensaje(chat_id, "❌ Usa el formato: /recordar 20:00 estudiar")
         elif text == "/ver":
